@@ -54,7 +54,7 @@ class MyHTMLParser(HTMLParser):
       self.text += data
 
 def threads(years=None):
-  base = 'comments'
+  base = 'reddit/comments'
   if years is None:
     years = os.listdir(base)
   for year in years:
