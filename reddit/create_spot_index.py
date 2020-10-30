@@ -4,10 +4,10 @@ import spot
 
 import time
 
-if os.path.exists('spot-index'):
-  os.remove('spot-index')
+if os.path.exists('reddit/spot-index'):
+  os.remove('reddit/spot-index')
 
-index = spot.Index.create('spot-index', rankings=['score'], ranges=['created_utc', 'score', 'depth', 'random'])
+index = spot.Index.create('reddit/spot-index', rankings=['score'], ranges=['created_utc', 'score', 'depth', 'random'])
 
 comment_insertions = 0
 token_insertions = 0
@@ -16,7 +16,7 @@ lasttime = time.time()
 
 ids = set()
 allscores = []
-for thread in threads():
+for thread in threads(years=['2020']):
   comments = thread['comments']
 
   id2comment = {}
@@ -31,7 +31,9 @@ for thread in threads():
     if comment['body_html'] == '<div class="md"><p>[deleted]</p>\n</div>':
       continue
 
-    depth = 0
+    # Threads have depth = 0
+    # All comments have depth > 0
+    depth = 1
     parent = id2comment.get(comment['parent_id'][3:], None)
     if parent:
       depth += 1
@@ -45,7 +47,7 @@ for thread in threads():
 
     comment['depth'] = depth
 
-    tokens = get_tokens(comment, parent, gparent, thread, isthread=False)
+    tokens = get_tokens(comment, parent, thread, isthread=False)
     comment['tokens'] = ' '.join(tokens)
 
     # Save some space -- all this information is in body_html anyway
@@ -60,13 +62,21 @@ for thread in threads():
     ids.add(id_)
 
     comment['random'] = random.random()
-    index.insert(id_, tokens, comment)
+    index.insert(id_, comment['created_utc'], tokens, comment)
     comment_insertions += 1
     token_insertions += len(tokens)
 
     if comment_insertions % 10000 == 0:
     	print('%.3f' % (time.time() - lasttime), comment_insertions, token_insertions)
     	lasttime = time.time()
+
+  tokens = get_tokens(thread, parent, thread, isthread=True)
+  del thread['comments']
+  thread['depth'] = 0
+  thread['tokens'] = ' '.join(tokens)
+  thread['random'] = random.random()
+  index.insert(int(thread['id'], 36), thread['created_utc'], tokens, thread)
+
 
 index.create_indices()
 

@@ -153,9 +153,19 @@ boulder = FindAndBoldTermsHTMLParser()
 
 
 def search(query_text, max_results=100):
+  if len(query_text.strip()) == 0:
+    with open('reddit/template.html', 'r') as f:
+      text = f.read()
+    result = pystache.render(text, {
+      'comments': [],
+      'num_results_msg': ''
+    })
+    return result
+
   index = spot.Index('reddit/spot-index')
   start_time = time.time()
   print(f'search {query_text}')
+
 
   query_result = query(index, query_text, max_results = max_results+1)
   if type(query_result) is str:
@@ -177,7 +187,10 @@ def search(query_text, max_results=100):
     comment['subreddit'] = 'slatestarcodex' if 'slatestarcodex' in comment['permalink'] else 'TheMotte'
     comment['idx'] = i + 1
     parser.reset()
-    parser.feed(comment["body_html"])
+    if "body_html" in comment:
+      parser.feed(comment["body_html"])
+    else:
+      parser.feed(f'<h2>{comment["title"]}</h2>' + comment['selftext_html'])
 
     boulder.reset()
     boulder.feed(parser.alltext)

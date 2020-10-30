@@ -127,7 +127,7 @@ function foo(mod, reportee, url) {
 window.onkeydown = (e) => {
   if (document.activeElement === searchInput) {
     if (e.key === 'Enter') {
-      window.location = './search?query=' + encodeURIComponent(searchInput.value);
+      window.location = './?query=' + encodeURIComponent(searchInput.value);
     }
   }
 }

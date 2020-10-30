@@ -90,9 +90,13 @@ def text2tokens(text):
       tokens.remove(token)
   return tokens
 
-def get_tokens(comment, parent, gparent, thread, isthread):
+def get_tokens(comment, parent, thread, isthread):
   parser.reset()
-  parser.feed(comment['body_html'])
+  if isthread:
+    if ('selftext_html' in comment) and (comment['selftext_html'] != None):
+      parser.feed(f'<h2>{comment["title"]}</h2>' + comment['selftext_html'])
+  else:
+    parser.feed(comment['body_html'])
   parser.close()
 
   links = parser.links
@@ -146,11 +150,6 @@ def get_tokens(comment, parent, gparent, thread, isthread):
     if 'author' in parent:
       tokens.add(f'pauthor:{parent["author"].lower()}')
     tokens.add(f'pscore:{getscore(parent)}')
-
-  if gparent:
-    if 'author' in gparent:
-      tokens.add(f'gauthor:{gparent["author"].lower()}')
-    tokens.add(f'gscore:{getscore(gparent)}')
 
   if 'distinguished' in comment and comment['distinguished'] is not None:
     if comment['distinguished'] != 'moderator':
