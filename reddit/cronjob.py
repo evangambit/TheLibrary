@@ -29,7 +29,7 @@ tokens:
 
 """
 
-import code, json, os, random, requests, sqlite3, time
+import argparse, code, json, os, random, requests, sqlite3, time
 
 from reddit import Reddit, create_submission
 
@@ -58,11 +58,14 @@ def compute_depth(index, comment):
 
 def prep_comment_for_insertion(index, comment):
   docid = int(comment['id'], 36)
-  parent_id = comment['parent_id'][3:]
-  thread_id = comment['permalink'].split('/')[4]
-
   oldcomment = index.json_from_docid(docid)
-  parent = index.json_from_docid(int(parent_id, 36))
+
+  if 'parent_id' in comment:
+    parent = index.json_from_docid(int(comment['parent_id'][3:], 36))
+  else:
+    parent = None
+
+  thread_id = comment['permalink'].split('/')[4]
   thread = index.json_from_docid(int(thread_id, 36))
 
   comment['random'] = random.random()
@@ -79,6 +82,12 @@ def prep_comment_for_insertion(index, comment):
   return comment
 
 if __name__ == '__main__':
+  parser = argparse.ArgumentParser(description='Grab and refresh recent comments')
+  parser.add_argument('--num', '-n', type=int, default=100, help='Number of posts/comments to get')
+  parser.add_argument('--outdir', '-o', type=str, required=True, help='Directory to dump jsons to')
+  parser.add_argument('--subs', '-s', type=str, required=False, default='TheMotte,slatestarcodex,theschism', help='Comma-delimited list of subreddits')
+  args = parser.parse_args()
+
   index = spot.Index('reddit/spot-index')
 
   reddit = Reddit()
@@ -86,7 +95,7 @@ if __name__ == '__main__':
 
   # Step 1: fetch the 100 newest comments from each subreddit.
   # for subreddit in ['slatestarcodex', 'TheMotte', 'theschism']:
-  for subreddit in ['theschism']:
+  for subreddit in args.subs.split(','):
     T = []
     r = reddit.request(
       f"https://www.reddit.com/r/{subreddit}/comments.json?limit={limit}")
@@ -111,8 +120,10 @@ if __name__ == '__main__':
       comment = prep_comment_for_insertion(index, comment)
       # We use 'replace' here so when we insert a comment twice (which is
       # expected) we don't throw an error.
+      docid = int(comment['id'], 36)
       index.replace(
         int(comment['id'], 36),
+        post_id,
         comment['created_utc'],
         comment['tokens'].split(' '),
         comment
@@ -124,28 +135,55 @@ if __name__ == '__main__':
   # In practice this means finding all *posts* with comments that are 2 or 14
   # days old and fetching from them.
   for days in [2, 14]:
-    a = time.time() - kSecsPerDay * days - kCronjobTimestep
+    a = time.time() - kSecsPerDay * days - kCronjobTimestep * 2
     b = time.time() - kSecsPerDay * days
-    index.c.execute(f'SELECT docid, json FROM documents WHERE created_utc > {a} AND created_utc < {b}')
+    index.c.execute(f'SELECT docid, postid, json FROM documents WHERE created_utc > {a} AND created_utc < {b}')
     comments = index.c.fetchall()
+    print(f'refreshing {len(comments)} comments that are {days} days old')
 
-    for docid, comment in comments:
-      oldcomment = json.loads(comment)
+    for docid, postid, oldcomment in comments:
+      oldcomment = json.loads(oldcomment)
       permalink = oldcomment['permalink']
       r = reddit.request(f"https://www.reddit.com{permalink[:-1]}.json")
-      comment = r[1]['data']['children'][0]['data']
+      if is_thread(oldcomment):
+        comment = r[0]['data']['children'][0]['data']
+      else:
+        if len(r[1]['data']['children']) == 0:
+          # Missing comment (often deleted).
+          continue
+        comment = r[1]['data']['children'][0]['data']
       if int(comment['id'], 36) != docid:
         print('Error (mismatching IDs)')
         exit(0)
         continue
-      if comment['body'] != '[deleted]':
+      if comment['author'] != '[deleted]':
         comment = prep_comment_for_insertion(index, comment)
         index.replace(
           docid,
+          postid,
           comment['created_utc'],
           comment['tokens'].split(' '),
           comment
         )
+
+  # Dump threads into comments.
+  for docid, postid, comment in comments:
+    index.c.execute(f'SELECT json FROM documents WHERE postid == {postid}')
+    C = [json.loads(c[0]) for c in index.c.fetchall()]
+    post = [c for c in C if int(c['id'], 36) == postid]
+    assert len(post) == 1
+    post = post[0]
+
+    C = [c for c in C if int(c['id'], 36) != postid]
+
+    post['comments'] = C
+
+    # TODO: compute year
+
+    with open(pjoin(args.outdir, year, post['id'] + '.json'), 'w') as f:
+      json.dump(post, f)
+
+    break
 
   index.commit()
 

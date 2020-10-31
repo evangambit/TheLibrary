@@ -53,10 +53,19 @@ class MyHTMLParser(HTMLParser):
     if (self.blockquote == 0 or self.ignore_quotes) and not isUrl:
       self.text += data
 
+def permalink2postid(permalink):
+  # Example: /r/theschism/comments/jadgek/name/g91a2yg
+  parts = permalink.split('/')
+  assert parts[0] == ''
+  assert parts[1] == 'r'
+  assert parts[3] == 'comments'
+  return int(parts[4], 36)
+
 def threads(years=None):
   base = 'reddit/comments'
   if years is None:
     years = os.listdir(base)
+  years.sort()
   for year in years:
     if not year.isdigit():
       continue
@@ -109,7 +118,7 @@ def get_tokens(comment, parent, thread, isthread):
   assert '"' not in ' '.join(tokens)
 
   # Add author to tokens
-  if 'author' in comment:
+  if 'author' in comment and comment['author'] is not None:
     tokens.add(f'author:{comment["author"].lower()}')
 
   date = datetime.fromtimestamp(comment['created_utc'])

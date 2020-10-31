@@ -17,6 +17,7 @@ lasttime = time.time()
 ids = set()
 allscores = []
 for thread in threads(years=['2020']):
+# for thread in threads():
   comments = thread['comments']
 
   id2comment = {}
@@ -37,18 +38,17 @@ for thread in threads(years=['2020']):
     parent = id2comment.get(comment['parent_id'][3:], None)
     if parent:
       depth += 1
-      gparent = id2comment.get(parent['parent_id'][3:], None)
-      ancestor = gparent
+      ancestor = id2comment.get(parent['parent_id'][3:], None)
       while ancestor and (ancestor['parent_id'][3:] in id2comment):
         depth += 1
         ancestor = id2comment.get(ancestor['parent_id'][3:], None)
-    else:
-      gparent = None
 
     comment['depth'] = depth
 
     tokens = get_tokens(comment, parent, thread, isthread=False)
     comment['tokens'] = ' '.join(tokens)
+
+    postid = permalink2postid(comment['permalink'])
 
     # Save some space -- all this information is in body_html anyway
     del comment['body']
@@ -62,7 +62,7 @@ for thread in threads(years=['2020']):
     ids.add(id_)
 
     comment['random'] = random.random()
-    index.insert(id_, comment['created_utc'], tokens, comment)
+    index.insert(id_, postid, comment['created_utc'], tokens, comment)
     comment_insertions += 1
     token_insertions += len(tokens)
 
@@ -70,13 +70,19 @@ for thread in threads(years=['2020']):
     	print('%.3f' % (time.time() - lasttime), comment_insertions, token_insertions)
     	lasttime = time.time()
 
-  tokens = get_tokens(thread, parent, thread, isthread=True)
   del thread['comments']
+  postid = int(thread['id'], 36)
+  tokens = get_tokens(thread, parent, thread, isthread=True)
   thread['depth'] = 0
   thread['tokens'] = ' '.join(tokens)
   thread['random'] = random.random()
-  index.insert(int(thread['id'], 36), thread['created_utc'], tokens, thread)
-
+  thread['score'] = thread.get('ups', 0)
+  # There's some bug that sometimes duplicates a thread across two different
+  # year directories (afaict this is only for threads between 2019 and 2020).
+  # Since 'threads' runs chronologically (oldest to newest) we simply replace
+  # the thread from 2019 (which is empirically always less up-to-date) with the
+  # thread from 2020.
+  index.replace(postid, postid, thread['created_utc'], tokens, thread)
 
 index.create_indices()
 
