@@ -30,6 +30,7 @@ tokens:
 """
 
 import argparse, code, json, os, random, requests, sqlite3, time
+from datetime import datetime
 
 from reddit import Reddit, create_submission
 
@@ -178,9 +179,8 @@ if __name__ == '__main__':
 
     post['comments'] = C
 
-    # TODO: compute year
-
-    with open(pjoin(args.outdir, year, post['id'] + '.json'), 'w') as f:
+    date = datetime.fromtimestamp(post['created_utc'])
+    with open(pjoin(args.outdir, date.year, post['id'] + '.json'), 'w') as f:
       json.dump(post, f)
 
     break
