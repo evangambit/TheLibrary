@@ -88,9 +88,10 @@ if __name__ == '__main__':
   parser.add_argument('--num', '-n', type=int, default=100, help='Number of posts/comments to get')
   parser.add_argument('--outdir', '-o', type=str, required=True, help='Directory to dump jsons to')
   parser.add_argument('--subs', '-s', type=str, required=False, default='TheMotte,slatestarcodex,theschism', help='Comma-delimited list of subreddits')
+  parser.add_argument('--indexpath', '-ip', type=str, required=False, default='reddit/spot-index', help='Location of spot index')
   args = parser.parse_args()
 
-  index = spot.Index('reddit/spot-index')
+  index = spot.Index(args.indexpath)
 
   reddit = Reddit()
 
