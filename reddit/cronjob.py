@@ -167,27 +167,35 @@ if __name__ == '__main__':
           comment
         )
 
-  # Dump threads into comments.
-  for docid, postid, comment in comments:
+# Dump threads into comments.
+for days in [2, 14]:
+  a = time.time() - kSecsPerDay * days - kCronjobTimestep * 2
+  b = time.time() - kSecsPerDay * days
+  index.c.execute(f'SELECT docid, postid, json FROM documents WHERE created_utc > {a} AND created_utc < {b}')
+  comments = index.c.fetchall()
+  for docid, postid, oldcomment in comments:
+    oldcomment = json.loads(oldcomment)
+    if not is_thread(oldcomment):
+      continue
+
+    # Fetch all comments for a post
     index.c.execute(f'SELECT json FROM documents WHERE postid == {postid}')
     C = [json.loads(c[0]) for c in index.c.fetchall()]
+
+    # Separate the post from its comments
     post = [c for c in C if int(c['id'], 36) == postid]
     assert len(post) == 1
     post = post[0]
-
     C = [c for c in C if int(c['id'], 36) != postid]
 
     post['comments'] = C
-
     date = datetime.fromtimestamp(post['created_utc'])
-    with open(pjoin(args.outdir, date.year, post['id'] + '.json'), 'w') as f:
+
+    fn = pjoin(args.outdir, str(date.year), post['id'] + '.json')
+    print('dump', fn)
+    with open(fn, 'w') as f:
       json.dump(post, f)
 
-    break
-
-  index.commit()
-
-  # Step 3: comments
 
 
 
