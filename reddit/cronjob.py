@@ -92,16 +92,19 @@ if __name__ == '__main__':
   index = spot.Index('reddit/spot-index')
 
   reddit = Reddit()
-  limit = 100
 
   # Step 1: fetch the 100 newest comments from each subreddit.
   # for subreddit in ['slatestarcodex', 'TheMotte', 'theschism']:
   for subreddit in args.subs.split(','):
     T = []
     r = reddit.request(
-      f"https://www.reddit.com/r/{subreddit}/comments.json?limit={limit}")
+      f"https://www.reddit.com/r/{subreddit}/comments.json?limit={args.num}")
     assert r['kind'] == 'Listing'
     comments = r['data']['children']
+
+    oldest_time = min(c['data']['created_utc'] for c in comments)
+
+    print(f'Fetched {subreddit} comments back to %.2f hours ago' % ((time.time() - oldest_time) / 3600))
 
     # Iterate through comments from old to new so parents are guaranteed to be
     # inserted first.
