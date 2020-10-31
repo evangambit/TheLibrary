@@ -84,6 +84,9 @@ def prep_comment_for_insertion(index, comment):
   return comment
 
 if __name__ == '__main__':
+  print('========' * 4)
+  print(f'Starting cronjob.py at {round(time.time())}s ({datetime.fromtimestamp(round(time.time()))})')
+
   parser = argparse.ArgumentParser(description='Grab and refresh recent comments')
   parser.add_argument('--num', '-n', type=int, default=100, help='Number of posts/comments to get')
   parser.add_argument('--outdir', '-o', type=str, required=True, help='Directory to dump jsons to')
