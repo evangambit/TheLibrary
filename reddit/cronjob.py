@@ -37,8 +37,9 @@ from reddit import Reddit, create_submission
 import spot
 from utils import *
 
-# Script runs every 10 minutes.
-kCronjobTimestep = 10 * 60
+# Script runs every 10 minutes, but we set this value to
+# 20 minutes so that there is some overlap.
+kCronjobTimestep = 20 * 60
 
 kSecsPerDay = 60 * 60 * 24
 
@@ -139,7 +140,7 @@ if __name__ == '__main__':
   # In practice this means finding all *posts* with comments that are 2 or 14
   # days old and fetching from them.
   for days in [2, 14]:
-    a = time.time() - kSecsPerDay * days - kCronjobTimestep * 2
+    a = time.time() - kSecsPerDay * days - kCronjobTimestep
     b = time.time() - kSecsPerDay * days
     index.c.execute(f'SELECT docid, postid, json FROM documents WHERE created_utc > {a} AND created_utc < {b}')
     comments = index.c.fetchall()
@@ -172,7 +173,7 @@ if __name__ == '__main__':
 
 # Dump threads into comments.
 for days in [2, 14]:
-  a = time.time() - kSecsPerDay * days - kCronjobTimestep * 2
+  a = time.time() - kSecsPerDay * days - kCronjobTimestep
   b = time.time() - kSecsPerDay * days
   index.c.execute(f'SELECT docid, postid, json FROM documents WHERE created_utc > {a} AND created_utc < {b}')
   comments = index.c.fetchall()
