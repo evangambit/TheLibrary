@@ -20,6 +20,12 @@ def get_post_fn(args, year, postid):
 def timestamp_to_year(timestamp_seconds):
   return datetime.utcfromtimestamp(timestamp_seconds).year
 
+def get_submission(reddit, postid):
+  s = create_submission(reddit, postid)
+  j = s.json
+  j['comments'] = list(s.comments.values())
+  return j
+
 if __name__ == '__main__':
   print('========' * 4)
   print(f'Starting cronjob.py at {round(time.time())}s ({datetime.fromtimestamp(round(time.time()))})')
@@ -85,7 +91,7 @@ if __name__ == '__main__':
         continue
       if post['created_utc'] < oldest_comment_time:
         print(f'Downloading all comments from {post["permalink"]}')
-        newPosts[i] = create_submission(reddit, post['id']).json
+        newPosts[i] = get_submission(reddit, post['id'])
 
 
     # Create map of posts
@@ -96,7 +102,7 @@ if __name__ == '__main__':
       # If we've never seen this post before, we need to do a best effort to
       # fetch all of its comments.
       if 'comments' not in post:
-        posts[postid] = create_submission(reddit, postid).json
+        posts[post['id']] = get_submission(reddit, post['id'])
 
     for c in newComments:
       _, _, _, _, postid, _, commentid, _ = c['permalink'].split('/')
@@ -113,14 +119,14 @@ if __name__ == '__main__':
           with open(fn, 'r') as f:
             posts[postid] = json.load(f)
         else:
-          posts[postid] = create_submission(reddit, postid).json
+          posts[postid] = get_submission(reddit, postid)
 
       post = posts[postid]
 
       cids = [comment['id'] for comment in post['comments']]
 
       if c['id'] in cids:
-        idx = cids.indexOf(c['id'])
+        idx = cids.index(c['id'])
         oldc = post['comments'][idx]
         if c['author'] == '[deleted]':
           continue
