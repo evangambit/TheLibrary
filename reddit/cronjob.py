@@ -17,8 +17,6 @@ average 3 queries every minute (plus 3 every 10 minutes to find new comments).
 """
 
 
-# TODO: insert posts!
-
 # TODO: don't use cache.db.  Just use the spot database.
 
 """
@@ -138,7 +136,9 @@ if __name__ == '__main__':
         comment
       )
 
+  print('<commit>')
   index.commit()
+  print('</commit>')
 
   # Step 2: for all comments either 2 days or 14 days old, refresh.
   # In practice this means finding all *posts* with comments that are 2 or 14
@@ -150,7 +150,8 @@ if __name__ == '__main__':
     comments = index.c.fetchall()
     print(f'refreshing {len(comments)} comments that are {days} days old')
 
-    for docid, postid, oldcomment in comments:
+    for i, (docid, postid, oldcomment) in enumerate(comments):
+      print(i, docid)
       oldcomment = json.loads(oldcomment)
       permalink = oldcomment['permalink']
       r = reddit.request(f"https://www.reddit.com{permalink[:-1]}.json")
@@ -175,35 +176,41 @@ if __name__ == '__main__':
           comment
         )
 
-# Dump threads into comments.
-for days in [2, 14]:
-  a = time.time() - kSecsPerDay * days - kCronjobTimestep
-  b = time.time() - kSecsPerDay * days
-  index.c.execute(f'SELECT docid, postid, json FROM documents WHERE created_utc > {a} AND created_utc < {b}')
-  comments = index.c.fetchall()
-  for docid, postid, oldcomment in comments:
-    oldcomment = json.loads(oldcomment)
-    if not is_thread(oldcomment):
-      continue
+  print('<commit>')
+  index.commit()
+  print('</commit>')
 
-    # Fetch all comments for a post
-    index.c.execute(f'SELECT json FROM documents WHERE postid == {postid}')
-    C = [json.loads(c[0]) for c in index.c.fetchall()]
+  # Dump threads into comments.  This doesn't use network so we can do this frequently.
+  for days in [0, 0.5, 1, 1.5, 2, 3, 4, 6, 8, 12, 16, 24]:
+    a = time.time() - kSecsPerDay * days - kCronjobTimestep
+    b = time.time() - kSecsPerDay * days
+    index.c.execute(f'SELECT docid, postid, json FROM documents WHERE created_utc > {a} AND created_utc < {b}')
+    comments = index.c.fetchall()
+    for docid, postid, oldcomment in comments:
+      oldcomment = json.loads(oldcomment)
+      if not is_thread(oldcomment):
+        continue
 
-    # Separate the post from its comments
-    post = [c for c in C if int(c['id'], 36) == postid]
-    assert len(post) == 1
-    post = post[0]
-    C = [c for c in C if int(c['id'], 36) != postid]
+      # Fetch all comments for a post
+      index.c.execute(f'SELECT json FROM documents WHERE postid == {postid}')
+      C = [json.loads(c[0]) for c in index.c.fetchall()]
 
-    post['comments'] = C
-    date = datetime.fromtimestamp(post['created_utc'])
+      # Separate the post from its comments
+      post = [c for c in C if int(c['id'], 36) == postid]
+      assert len(post) == 1
+      post = post[0]
+      C = [c for c in C if int(c['id'], 36) != postid]
 
-    fn = pjoin(args.outdir, str(date.year), post['id'] + '.json')
-    print('dump', fn)
-    with open(fn, 'w') as f:
-      json.dump(post, f)
+      post['comments'] = C
+      date = datetime.fromtimestamp(post['created_utc'])
 
+      fn = pjoin(args.outdir, str(date.year), post['id'] + '.json')
+      print('dump', fn)
+      with open(fn, 'w') as f:
+        json.dump(post, f, indent=1)
 
+  index.commit()
+
+  print(f'Ending cronjob.py at {round(time.time())}s ({datetime.fromtimestamp(round(time.time()))})')
 
 
