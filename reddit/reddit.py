@@ -163,7 +163,8 @@ class Reddit:
     self.appid = self.secret['appid']
     self.appsecret = self.secret['appsecret']
     self.useragent = self.secret['useragent']
-    self.throttler = Throttler(0.4)
+    # In practice 0.4 works well, but since this is used by non-interactive jobs, we just set it to 1.0
+    self.throttler = Throttler(1.0)
 
     self.expiresAt = 0
     self.authenticate()

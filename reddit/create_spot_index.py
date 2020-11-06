@@ -16,8 +16,8 @@ lasttime = time.time()
 
 ids = set()
 allscores = []
-for thread in threads(years=['2020']):
-# for thread in threads():
+# for thread in threads(years=['2020']):
+for thread in threads():
   comments = thread['comments']
 
   id2comment = {}
@@ -27,7 +27,7 @@ for thread in threads(years=['2020']):
   for comment in comments:
     if 'body_html' not in comment:
       continue
-    if comment['body'] == '[deleted]':
+    if comment.get('body', '') == '[deleted]':
       continue
     if comment['body_html'] == '<div class="md"><p>[deleted]</p>\n</div>':
       continue
@@ -51,7 +51,8 @@ for thread in threads(years=['2020']):
     postid = permalink2postid(comment['permalink'])
 
     # Save some space -- all this information is in body_html anyway
-    del comment['body']
+    if 'body' in comment:
+      del comment['body']
 
     if 'score' not in comment:
       comment['score'] = comment.get('ups', 0)

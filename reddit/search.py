@@ -190,8 +190,11 @@ def search(query_text, max_results=100):
     if "body_html" in comment:
       parser.feed(comment["body_html"])
     else:
-      parser.feed(f'<h2>{comment["title"]}</h2>' + comment['selftext_html'])
-
+      header = f'<h2>{comment.get("title", "")}</h2>'
+      body = comment.get('selftext_html', '')
+      if body is None:
+        body = ''
+      parser.feed(header + body) 
     boulder.reset()
     boulder.feed(parser.alltext)
     comment['body_html'] = boulder.html
