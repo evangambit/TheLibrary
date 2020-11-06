@@ -53,6 +53,8 @@ class MoreComments:
     else:
       raise Exception('A "MoreComment" should always have an existing parent')
 
+    # TODO: with too many children it's possible for this URL to be too long,
+    # which can make this request fail.
     url = f'https://api.reddit.com/api/morechildren?api_type=json&link_id={link_id}&children={",".join(self.json["children"])}&order={self.submission.order}'
     result = self.reddit.request(url)
     if result is None:
