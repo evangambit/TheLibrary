@@ -285,7 +285,7 @@ def create_submission(reddit, submission_id):
   # 400 comments in a submission (some flaw with reddit's API?) but if
   # we request with many different orders we can typically find (almost?)
   # every comment.
-  if submission.json['num_comments'] > 400:
+  if False and submission.json['num_comments'] > 400:
     S1 = Submission(reddit, submission.id, order='new')
     S2 = Submission(reddit, submission.id, order='old')
     S3 = Submission(reddit, submission.id, order='top')

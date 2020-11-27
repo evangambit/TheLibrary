@@ -62,7 +62,8 @@ def permalink2postid(permalink):
   return int(parts[4], 36)
 
 def threads(years=None):
-  base = 'reddit/comments'
+  # base = 'reddit/comments'
+  base = 'reddit/c2'
   if years is None:
     years = os.listdir(base)
   years.sort()

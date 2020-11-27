@@ -7,7 +7,7 @@ import time
 if os.path.exists('reddit/spot-index'):
   os.remove('reddit/spot-index')
 
-index = spot.Index.create('reddit/spot-index', rankings=['score'], ranges=['created_utc', 'score', 'depth', 'random'])
+index = spot.Index.create('reddit/spot-index', rankings=['score', 'created_utc'], ranges=['created_utc', 'score', 'depth', 'random'])
 
 comment_insertions = 0
 token_insertions = 0
@@ -16,8 +16,8 @@ lasttime = time.time()
 
 ids = set()
 allscores = []
-# for thread in threads(years=['2020']):
-for thread in threads():
+for thread in threads(years=['2020']):
+# for thread in threads():
   comments = thread['comments']
 
   id2comment = {}
