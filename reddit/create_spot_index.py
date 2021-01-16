@@ -7,7 +7,7 @@ import time
 if os.path.exists('reddit/spot-index'):
   os.remove('reddit/spot-index')
 
-index = spot.Index.create('reddit/spot-index', rankings=['score'], ranges=['created_utc', 'score', 'depth', 'random'])
+index = spot.Index.create('reddit/spot-index', rankings=['score', 'created_utc'], ranges=['created_utc', 'score', 'depth', 'random'])
 
 comment_insertions = 0
 token_insertions = 0
@@ -16,7 +16,7 @@ lasttime = time.time()
 
 ids = set()
 allscores = []
-# for thread in threads(years=['2020']):
+# for thread in threads(years=['2019', '2020']):
 for thread in threads():
   comments = thread['comments']
 
@@ -71,6 +71,7 @@ for thread in threads():
     	print('%.3f' % (time.time() - lasttime), comment_insertions, token_insertions)
     	lasttime = time.time()
 
+  continue
   del thread['comments']
   postid = int(thread['id'], 36)
   tokens = get_tokens(thread, parent, thread, isthread=True)

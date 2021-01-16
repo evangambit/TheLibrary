@@ -77,9 +77,12 @@ def query(index, user_query, max_results=100, offset=0):
       t = float(time.time() - dt)
       ranges[i] = ('created_utc', kOppositeOperation[op], t)
 
+  kRanking = '-score'
+  # kRanking = '-created_utc'
+
   if len(tokens) == 0:
     it = index.all_iterator(
-      ranking='-score',
+      ranking=kRanking,
       limit=float('inf'),
       range_requirements=ranges,
       offset=offset
@@ -88,7 +91,7 @@ def query(index, user_query, max_results=100, offset=0):
     it = spot.filtering.intersect(
       *[index.token_iterator(
         t,
-        ranking='-score',
+        ranking=kRanking,
         limit=float('inf'),
         range_requirements=ranges,
         offset=offset
@@ -184,7 +187,12 @@ def search(query_text, max_results=100):
   boulder.terms = set([t for t in tokens if (':' not in t) and (t not in '()+')])
   for i in range(len(query_result['comments'])):
     comment = query_result['comments'][i]
-    comment['subreddit'] = 'slatestarcodex' if 'slatestarcodex' in comment['permalink'] else 'TheMotte'
+    if 'slatestarcodex' in comment['permalink']:
+      comment['subreddit'] = 'slatestarcodex'
+    elif 'TheMotte' in comment['permalink']:
+      comment['subreddit'] = 'TheMotte'
+    else:
+      comment['subreddit'] = 'theschism'
     comment['idx'] = i + 1
     parser.reset()
     if "body_html" in comment:

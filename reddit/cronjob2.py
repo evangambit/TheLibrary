@@ -30,7 +30,8 @@ def merge_comment(old, new):
 
 if __name__ == '__main__':
   print('========' * 4)
-  print(f'Starting cronjob.py at {round(time.time())}s ({datetime.fromtimestamp(round(time.time()))})')
+  startTime = time.time()
+  print(f'Starting cronjob2.py at {round(time.time())}s ({datetime.fromtimestamp(round(startTime))})')
 
   parser = argparse.ArgumentParser(description='Grab and refresh recent comments')
   parser.add_argument('--num', '-n', type=int, default=100, help='Number of posts/comments to get')
@@ -47,15 +48,25 @@ if __name__ == '__main__':
     T = []
 
     # Fetch new posts.
-    newPosts = reddit.request(
-      f"https://www.reddit.com/r/{subreddit}/new.json?sort=new"
-    )['data']['children']
+    try:
+      newPosts = reddit.request(
+        f"https://www.reddit.com/r/{subreddit}/new.json?sort=new"
+      )['data']['children']
+    except:
+      newPosts = reddit.request(
+        f"https://www.reddit.com/r/{subreddit}/new.json?sort=new"
+      )['data']['children']
     newPosts = [c['data'] for c in newPosts if c['kind'] == 't3']
 
     # Fetch new comments.
-    newComments = reddit.request(
-      f"https://www.reddit.com/r/{subreddit}/comments.json?limit={args.num}"
-    )['data']['children']
+    try:
+      newComments = reddit.request(
+        f"https://www.reddit.com/r/{subreddit}/comments.json?limit={args.num}"
+      )['data']['children']
+    except:
+      newComments = reddit.request(
+        f"https://www.reddit.com/r/{subreddit}/comments.json?limit={args.num}"
+      )['data']['children']
     newComments = [c['data'] for c in newComments if c['kind'] == 't1']
 
     oldest_comment_time = min(c['created_utc'] for c in newComments)
@@ -92,7 +103,7 @@ if __name__ == '__main__':
       if 'comments' in post:
         continue
       if post['created_utc'] < oldest_comment_time:
-        print(f'Downloading all comments from {post["permalink"]}')
+        print(f'(1) Downloading all comments from {post["permalink"]}')
         newPosts[i] = get_submission(reddit, post['id'])
 
 
@@ -104,6 +115,7 @@ if __name__ == '__main__':
       # If we've never seen this post before, we need to do a best effort to
       # fetch all of its comments.
       if 'comments' not in post:
+        print(f'(2) Downloading all comments from {post["permalink"]}')
         posts[post['id']] = get_submission(reddit, post['id'])
 
     for c in newComments:
@@ -121,6 +133,7 @@ if __name__ == '__main__':
           with open(fn, 'r') as f:
             posts[postid] = json.load(f)
         else:
+          print(f'(3) Downloading all comments from {post["permalink"]}')
           posts[postid] = get_submission(reddit, postid)
 
       post = posts[postid]
@@ -137,6 +150,8 @@ if __name__ == '__main__':
       else:
         post['comments'].append(c)
         modifiedPosts.add(postid)
+
+    print(f"Writing out {len(modifiedPosts)} jsons")
 
     for postid in modifiedPosts:
       post = posts[postid]
@@ -235,4 +250,5 @@ if __name__ == '__main__':
   with open(rfp, 'w+') as f:
     json.dump(refresh, f, indent=1)
 
+  print('Ending cronjob2.py after %.1f seconds' % (time.time() - startTime))
 
