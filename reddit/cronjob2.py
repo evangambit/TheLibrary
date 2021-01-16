@@ -205,6 +205,7 @@ if __name__ == '__main__':
 
   # Update at most 10 posts.
   for postid in oldPostsToRefresh[:10]:
+    print(f'Updating post {postid}')
     submission = Submission(reddit, postid, order='new')
     new = submission.json
     new['comments'] = [c.json for c in submission.comments.values()]
