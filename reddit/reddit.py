@@ -286,13 +286,12 @@ def create_submission(reddit, submission_id):
   # we request with many different orders we can typically find (almost?)
   # every comment.
   if submission.json['num_comments'] > 400:
-    S1 = Submission(reddit, submission.id, order='new')
     S2 = Submission(reddit, submission.id, order='old')
     S3 = Submission(reddit, submission.id, order='top')
     S4 = Submission(reddit, submission.id, order='controversial')
     S5 = Submission(reddit, submission.id, order='random')
     C = {}
-    for k in S1.comments:
+    for k in submission.comments:
       C[k] = S1.comments[k].json
     for k in S2.comments:
       C[k] = S2.comments[k].json

@@ -1,7 +1,8 @@
 import argparse, code, json, os, random, requests, sqlite3, time
 from datetime import datetime
 
-from reddit import Reddit, create_submission
+from reddit import Reddit, create_submission, Submission
+import praw
 
 from utils import *
 
@@ -20,11 +21,12 @@ def get_post_fn(args, year, postid):
 def timestamp_to_year(timestamp_seconds):
   return datetime.utcfromtimestamp(timestamp_seconds).year
 
-def get_submission(reddit, postid):
-  s = create_submission(reddit, postid)
-  j = s.json
-  j['comments'] = list(s.comments.values())
-  return j
+def merge_comment(old, new):
+  print(new['author'])
+  if new['author'] == '[deleted]':
+    return old
+  else:
+    return new
 
 if __name__ == '__main__':
   print('========' * 4)
@@ -144,5 +146,93 @@ if __name__ == '__main__':
       with open(fn, 'w+') as f:
         json.dump(post, f, indent=1)
 
+
+  # # Step 2: For all posts over 1 month old, re-grab all their comments to update
+  # # scores.
+
+  # Create refresh.json if it doesn't exist.
+  rfp = os.path.join(args.outdir, 'refresh.json')
+  if not os.path.exists(rfp):
+    with open(rfp, 'w') as f:
+      f.write('{}')
+
+  # Read refresh.json from disk.
+  with open(rfp, 'r') as f:
+    refresh = json.load(f)
+
+  # Read all posts on disk.
+  allposts = []
+  for year in os.listdir(args.outdir):
+    if os.path.isdir(os.path.join(args.outdir, year)):
+      allposts += [(year, x.split('.')[0]) for x in os.listdir(os.path.join(args.outdir, year)) if '.json' in x]
+
+  # Add any new posts to refresh.json
+  for year, postid in allposts:
+    if postid in refresh:
+      continue
+    with open(os.path.join(args.outdir, year, postid + '.json'), 'r') as f:
+      post = json.load(f)
+      refresh[postid] = {
+        "created_utc": post['created_utc'],
+        "last_refreshed": 0.0
+      }
+
+  # Compute which posts to update.
+  oldPostsToRefresh = []
+  now = time.time()
+  for postid in refresh:
+    a = refresh[postid]
+    if now - a['created_utc'] < kSecsPerDay * 14:
+      continue
+    if a['last_refreshed'] != 0.0:
+      continue
+    oldPostsToRefresh.append(postid)
+
+  # Update at most 10 posts.
+  for postid in oldPostsToRefresh[:10]:
+    submission = Submission(reddit, postid, order='new')
+    new = submission.json
+    new['comments'] = [c.json for c in submission.comments.values()]
+
+    year = timestamp_to_year(submission.json['created_utc'])
+    with open(get_post_fn(args, year, postid), 'r') as f:
+      old = json.load(f)
+
+    # Fetch missing new comments
+    missingIds = set(c['id'] for c in old['comments']).difference(set(c['id'] for c in new['comments']))
+    for id_ in missingIds:
+      url = 'https://www.reddit.com' + new['permalink'] + id_ + '.json'
+      j = reddit.request(url, max_tries=3, headers=None)
+      c = j[1]['data']['children']
+      if len(c) == 0:
+        print('comment "%s" was deleted' % (url))
+        continue
+      c = c[0]['data']
+      assert c['id'] == id_
+      new['comments'].append(c)
+
+    C = {}
+    for comment in old['comments']:
+      C[comment['id']] = comment
+
+    for comment in new['comments']:
+      if comment['id'] not in C:
+        # This should almost never happen.
+        C[comment['id']] = comment
+      else:
+        C[comment['id']] = merge_comment(C[comment['id']], comment)
+
+    if new['author'] == '[deleted]':
+      new = old
+
+    new['comments'] = list(C.values())
+
+    with open(os.path.join('tmp', postid + '.json'), 'w+') as f:
+      json.dump(new, f, indent=1)
+
+    refresh[postid]['last_refreshed'] = time.time()
+
+  with open(rfp, 'w+') as f:
+    json.dump(refresh, f, indent=1)
 
 
