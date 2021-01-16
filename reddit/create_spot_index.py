@@ -16,8 +16,8 @@ lasttime = time.time()
 
 ids = set()
 allscores = []
-for thread in threads(years=['2020']):
-# for thread in threads():
+# for thread in threads(years=['2019', '2020']):
+for thread in threads():
   comments = thread['comments']
 
   id2comment = {}
@@ -71,6 +71,7 @@ for thread in threads(years=['2020']):
     	print('%.3f' % (time.time() - lasttime), comment_insertions, token_insertions)
     	lasttime = time.time()
 
+  continue
   del thread['comments']
   postid = int(thread['id'], 36)
   tokens = get_tokens(thread, parent, thread, isthread=True)

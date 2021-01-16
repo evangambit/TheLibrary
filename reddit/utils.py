@@ -40,6 +40,8 @@ class MyHTMLParser(HTMLParser):
     elif tag == 'a':
       self.alltext += '<a>'
       href = [x for x in attrs if x[0] == 'href']
+      if len(href) == 0 or len(href[0]) < 2:
+        return
       self.links.add(href[0][1])
   def handle_endtag(self, tag):
     if tag == 'blockquote':
@@ -61,9 +63,8 @@ def permalink2postid(permalink):
   assert parts[3] == 'comments'
   return int(parts[4], 36)
 
-def threads(years=None):
+def threads(years=None, base='reddit/c2'):
   # base = 'reddit/comments'
-  base = 'reddit/c2'
   if years is None:
     years = os.listdir(base)
   years.sort()
