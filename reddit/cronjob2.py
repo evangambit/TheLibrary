@@ -21,6 +21,12 @@ def get_post_fn(args, year, postid):
 def timestamp_to_year(timestamp_seconds):
   return datetime.utcfromtimestamp(timestamp_seconds).year
 
+def get_submission(reddit, postid):
+  s = create_submission(reddit, postid)
+  j = s.json
+  j['comments'] = list(s.comments.values())
+  return j
+
 def merge_comment(old, new):
   print(new['author'])
   if new['author'] == '[deleted]':
