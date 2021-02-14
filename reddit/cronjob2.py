@@ -28,7 +28,6 @@ def get_submission(reddit, postid):
   return j
 
 def merge_comment(old, new):
-  print(new['author'])
   if new['author'] == '[deleted]':
     return old
   else:
@@ -209,6 +208,8 @@ if __name__ == '__main__':
       continue
     oldPostsToRefresh.append(postid)
 
+  print(f'{len(oldPostsToRefresh)} posts to refresh')
+
   # Update at most 10 posts.
   for postid in oldPostsToRefresh[:10]:
     print(f'Updating post {postid}')
@@ -249,7 +250,7 @@ if __name__ == '__main__':
 
     new['comments'] = list(C.values())
 
-    with open(os.path.join('tmp', postid + '.json'), 'w+') as f:
+    with open(get_post_fn(args, year, post['id']), 'w+') as f:
       json.dump(new, f, indent=1)
 
     refresh[postid]['last_refreshed'] = time.time()

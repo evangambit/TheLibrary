@@ -121,7 +121,8 @@ function copy2clipboard(text) {
 }
 
 function foo(mod, reportee, url) {
-  copy2clipboard('u/' + mod + ' banned u/' + reportee + ' for 0 ([context](' + url + '))');
+  // copy2clipboard('u/' + mod + ' banned u/' + reportee + ' for 0 ([context](' + url + '))');
+  copy2clipboard('u/' + reportee + ' banned by u/' + mod + ' for 0 ([context](' + url + '))');
 }
 
 window.onkeydown = (e) => {

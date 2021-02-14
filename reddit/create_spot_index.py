@@ -16,9 +16,16 @@ lasttime = time.time()
 
 ids = set()
 allscores = []
-# for thread in threads(years=['2019', '2020']):
-for thread in threads():
+threadCounter = 0
+for thread in threads(years=['2020', '2021']):
+  threadCounter += 1
+  assert thread['subreddit'] in ['TheMotte', 'slatestarcodex', 'theschism']
+  if thread['subreddit'] != 'theschism':
+    continue
+# for thread in threads():
   comments = thread['comments']
+
+  print(threadCounter)
 
   id2comment = {}
   for comment in comments:
@@ -63,7 +70,10 @@ for thread in threads():
     ids.add(id_)
 
     comment['random'] = random.random()
-    index.insert(id_, postid, comment['created_utc'], tokens, comment)
+    comment['docid'] = id_
+    comment['postid'] = postid
+    comment['tokens'] = list(tokens)
+    index.insert(comment)
     comment_insertions += 1
     token_insertions += len(tokens)
 
@@ -84,7 +94,7 @@ for thread in threads():
   # Since 'threads' runs chronologically (oldest to newest) we simply replace
   # the thread from 2019 (which is empirically always less up-to-date) with the
   # thread from 2020.
-  index.replace(postid, postid, thread['created_utc'], tokens, thread)
+  # index.replace(postid, postid, thread['created_utc'], tokens, thread)
 
 index.create_indices()
 

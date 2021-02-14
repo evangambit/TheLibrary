@@ -110,7 +110,8 @@ def query(index, user_query, max_results=100, offset=0):
     index.json_from_docid(r[1]) for r in R
   ]
   for i in range(len(R)):
-    T = R[i]["tokens"].split(' ')
+    # T = R[i]["tokens"].split(' ')
+    T = R[i]["tokens"]
     T.sort()
     R[i]["tokens"] = ' '.join(T)
   return {
@@ -165,6 +166,7 @@ def search(query_text, max_results=100):
     })
     return result
 
+  # index = spot.Index('reddit/spot-index-19-and-20')
   index = spot.Index('reddit/spot-index')
   start_time = time.time()
   print(f'search {query_text}')
